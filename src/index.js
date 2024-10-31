@@ -18,6 +18,12 @@ import { weatherSearch } from './lib/weather.js';
  * @type Array<SearchLocation>
  */
 const locations = [
+  // Mín staðsetning, bætist við þegar við fáum leyfi frá notanda
+  {
+    title: 'Mín staðsetning',
+    lat: null,
+    lng: null
+  },
   {
     title: 'Reykjavík',
     lat: 64.1355,
@@ -73,26 +79,29 @@ function renderResults(location, results) {
     {},
     el('th', {}, 'Tími'),
     el('th', {}, 'Hiti'),
-    el('th', {}, 'Úrkoma'),
-  );
-  console.log(results);
-  const body = el(
-    'tr',
-    {},
-    el('td', {}, 'Tími'),
-    el('td', {}, 'Hiti'),
-    el('td', {}, 'Úrkoma'),
+    el('th', {}, 'Úrkoma')
   );
 
-  const resultsTable = el('table', { class: 'forecast' }, header, body);
+
+  const bodyRows = results.map((forecast) =>
+    el(
+      'tr',
+      {},
+      el('td', {}, forecast.time),
+      el('td', {}, `${forecast.temperature} °C`),
+      el('td', {}, `${forecast.precipitation} mm`)
+    )
+  );
+
+  const resultsTable = el('table', { class: 'forecast' }, header, ...bodyRows);
 
   renderIntoResultsContent(
     el(
       'section',
       {},
       el('h2', {}, `Leitarniðurstöður fyrir: ${location.title}`),
-      resultsTable,
-    ),
+      resultsTable
+    )
   );
 }
 
@@ -140,7 +149,27 @@ async function onSearch(location) {
  * Biður notanda um leyfi gegnum vafra.
  */
 async function onSearchMyLocation() {
-  // TODO útfæra
+  renderLoading();
+
+  // Reynir að fá staðsetningu notanda með geolocation API
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      const userLocation = {
+        title: 'Mín staðsetning', // Nafn sem verður sýnt
+        lat: position.coords.latitude, // Breiddargráða fengin frá API
+        lng: position.coords.longitude // Lengdargráða fengin frá API
+      };
+
+      // Bætir staðsetningunni í locations listann
+      locations.push(userLocation);
+
+      // Kallar á onSearch til að birta veðrið fyrir þessa staðsetningu
+      onSearch(userLocation);
+    },
+    (error) => {
+      renderError(new Error('Ekki tókst að nálgast staðsetningu notanda'));
+    }
+  );
 }
 
 /**
@@ -151,6 +180,20 @@ async function onSearchMyLocation() {
  */
 function renderLocationButton(locationTitle, onSearch) {
   // Notum `el` fallið til að búa til element og spara okkur nokkur skref.
+
+  // Ef staðsetning er "Mín staðsetning" birtum við takka sem biður um staðsetningu
+  if (locationTitle === 'Mín staðsetning') {
+    return el(
+      'li',
+      { class: 'locations__location' },
+      el(
+        'button',
+        { class: 'locations__button', click: onSearchMyLocation },
+        locationTitle,
+      ),
+    );
+  }
+
   const locationElement = el(
     'li',
     { class: 'locations__location' },

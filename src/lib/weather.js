@@ -27,6 +27,12 @@ function parseResponse(data) {
     /** @type string */
     const _time = time[i];
 
+    // Breytum tíma í lesanlegt format (klukkustundir og mínútur)
+    const date = new Date(_time);
+    const hours = date.getUTCHours().toString().padStart(2, '0');
+    const minutes = date.getUTCMinutes().toString().padStart(2, '0');
+    const formattedTime = `${hours}:${minutes}`;
+
     /** @type number */
     const _pre = precipitation[i];
 
@@ -35,7 +41,7 @@ function parseResponse(data) {
 
     /** @type Forecast */
     const forecast = {
-      time: _time,
+      time: formattedTime,
       precipitation: _pre,
       temperature: _temp,
     };
